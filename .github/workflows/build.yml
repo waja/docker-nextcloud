@@ -6,6 +6,8 @@ on:
     branches:
       - master
       - version-*
+      - development
+      - backport-*
   schedule:
     # Build the image regularly (each Friday)
     - cron: '23 04 * * 5'
