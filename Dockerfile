@@ -73,7 +73,7 @@ RUN apk -U upgrade \
 
 ### Build Hardened Malloc
 ARG ALPINE_VERSION
-FROM alpine:3.14 as build-malloc
+FROM alpine:3.15.0 as build-malloc
 
 ARG HARDENED_MALLOC_VERSION
 ARG CONFIG_NATIVE=false
