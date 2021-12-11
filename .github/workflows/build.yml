@@ -3,7 +3,9 @@ name: build
 on:
   workflow_dispatch:
   push:
-    branches: [ master ]
+    branches:
+    - master
+    - multiarch
   schedule:
     # Build the image regularly (each Friday)
     - cron: '23 04 * * 5'
@@ -15,14 +17,118 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-
-      - name: Build an image from Dockerfile
+      - name: Prepare
+        id: prep
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
+          QUAY_TOKEN: ${{ secrets.QUAY_TOKEN }}
         run: |
-          docker build \
-              -t ghcr.io/${{ github.actor }}/nextcloud \
-              -t ghcr.io/${{ github.actor }}/nextcloud:$(grep -oP '(?<=NEXTCLOUD_VERSION=).*' Dockerfile | head -c6) \
-              -t ghcr.io/${{ github.actor }}/nextcloud:$(grep -oP '(?<=NEXTCLOUD_VERSION=).*' Dockerfile | head -c2) \
-              .
+          USER=${GITHUB_ACTOR}
+          IMAGE_NAME=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}' | sed  s/docker-//)
+          DOCKER_IMAGE=${USER}/${IMAGE_NAME}
+          NEXTCLOUD_VER=$(grep -oP '(?<=NEXTCLOUD_VERSION=).*' Dockerfile | head -c6)
+          NEXTCLOUD_MAJOR_VER=$(grep -oP '(?<=NEXTCLOUD_VERSION=).*' Dockerfile | head -c2)
+          VERSION=edge
+          # running on a branch
+          if [[ $GITHUB_REF == refs/heads/* ]]; then
+            BRANCH=${GITHUB_REF#refs/heads/}
+          fi
+          # running on schedule
+          # shellcheck disable=SC2050
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            BRANCH=weekly
+          fi
+          # running on master branch
+          if [ "$BRANCH" = "master" ]; then
+            BRANCH=latest
+          fi
+          TAGS_INT="${DOCKER_IMAGE}:${NEXTCLOUD_VER} ${DOCKER_IMAGE}:${NEXTCLOUD_MAJOR_VER}"
+          if [ $BRANCH = "latest" ] || [ $BRANCH = "weekly" ] || [ $BRANCH = "development" ]; then
+            TAGS_INT="$TAGS_INT ${DOCKER_IMAGE}:$BRANCH"
+          fi
+          TAGS=""
+          for TAG_ELEMENT in $TAGS_INT; do
+            if [ "$DOCKERHUB_USERNAME" != '' ] && [ "$DOCKERHUB_TOKEN" != '' ]; then
+              TAGS="${TAG_ELEMENT},"
+            fi
+            if [ "$GITHUB_TOKEN" != '' ]; then
+              TAGS="${TAGS}ghcr.io/${TAG_ELEMENT},"
+            fi
+            if [ "$QUAY_USERNAME" != '' ] && [ "$QUAY_TOKEN" != '' ]; then
+              TAGS="${TAGS}quay.io/${TAG_ELEMENT},"
+            fi
+          done
+          echo "::set-output name=tags::${TAGS}"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+        with:
+          platforms: all
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Cache Docker layers
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: Login to the registry
+        run: >-
+          echo "${{ secrets.GITHUB_TOKEN }}"
+          | docker login -u "${{ github.actor }}" --password-stdin ghcr.io
+
+      - name: Login to DockerHub Container Registry
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        if: ${{ github.event_name != 'pull_request' && env.DOCKERHUB_USERNAME != '' && env.DOCKERHUB_TOKEN != '' }}
+        uses: docker/login-action@v1
+        with:
+          username: ${{ env.DOCKERHUB_USERNAME }}
+          password: ${{ env.DOCKERHUB_TOKEN }}
+
+      - name: Login to Quay Container Registry
+        env:
+          QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
+          QUAY_TOKEN: ${{ secrets.QUAY_TOKEN }}
+        if: ${{ github.event_name != 'pull_request' && env.QUAY_USERNAME != '' && env.QUAY_TOKEN != '' }}
+        uses: docker/login-action@v1
+        with:
+          registry: quay.io
+          username: ${{ env.QUAY_USERNAME }}
+          password: ${{ env.QUAY_TOKEN }}
+
+      - name: Build and push
+        id: docker_build
+        uses: docker/build-push-action@v2
+        with:
+          builder: ${{ steps.buildx.outputs.name }}
+          context: .
+          file: ./Dockerfile
+          #platforms: linux/amd64, linux/arm64, linux/ppc64le, linux/s390x
+          platforms: linux/ppc64le
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            ${{ steps.prep.outputs.tags }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache
+          build-args: |
+            BUILD_DATE="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            BUILD_VERSION="$(git describe --tags)"
+            VCS_REF="$(git rev-parse --short HEAD)"
+            VCS_URL="$(git config --get remote.origin.url)"
+            VCS_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+
+      - name: Image digest
+        run: echo ${{ steps.docker_build.outputs.digest }}
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
@@ -38,14 +144,3 @@ jobs:
         uses: github/codeql-action/upload-sarif@v1
         with:
           sarif_file: 'trivy-results.sarif'
-
-      - name: Login to the registry
-        run: >-
-          echo "${{ secrets.GITHUB_TOKEN }}"
-          | docker login -u "${{ github.actor }}" --password-stdin ghcr.io
-
-      - name: Push image to GitHub
-        run: |
-          docker push ghcr.io/${{ github.actor }}/nextcloud
-          docker push ghcr.io/${{ github.actor }}/nextcloud:$(grep -oP '(?<=NEXTCLOUD_VERSION=).*' Dockerfile | head -c6)
-          docker push ghcr.io/${{ github.actor }}/nextcloud:$(grep -oP '(?<=NEXTCLOUD_VERSION=).*' Dockerfile | head -c2)
