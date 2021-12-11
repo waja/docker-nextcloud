@@ -11,7 +11,7 @@ ARG GID=1000
 # ---------------------------------------------------
 
 ### Build PHP base
-FROM php:8.0.12-fpm-alpine3.14 as base
+FROM php:8.0.13-fpm-alpine3.14 as base
 
 ARG APCU_VERSION
 ARG REDIS_VERSION
