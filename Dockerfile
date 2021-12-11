@@ -86,7 +86,7 @@ RUN apk --no-cache add build-base git gnupg && cd /tmp \
 
 
 ### Fetch nginx
-FROM nginx:1.20.1-alpine as nginx
+FROM nginx:1.20.2-alpine as nginx
 
 
 ### Build Nextcloud (production environemnt)
