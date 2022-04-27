@@ -11,7 +11,7 @@ ARG GID=1000
 # ---------------------------------------------------
 
 ### Build PHP base
-FROM php:${PHP_VERSION}-fpm-alpine${ALPINE_VERSION} as base
+FROM php:8.0.13-fpm-alpine3.14 as base
 
 ARG APCU_VERSION
 ARG REDIS_VERSION
@@ -73,7 +73,7 @@ RUN apk -U upgrade \
 
 ### Build Hardened Malloc
 ARG ALPINE_VERSION
-FROM alpine:${ALPINE_VERSION} as build-malloc
+FROM alpine:3.14 as build-malloc
 
 ARG HARDENED_MALLOC_VERSION
 ARG CONFIG_NATIVE=false
@@ -87,7 +87,7 @@ RUN apk --no-cache add build-base git gnupg && cd /tmp \
 
 
 ### Fetch nginx
-FROM nginx:${NGINX_VERSION}-alpine as nginx
+FROM nginx:1.20.1-alpine as nginx
 
 
 ### Build Nextcloud (production environemnt)
