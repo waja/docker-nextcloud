@@ -1,7 +1,7 @@
 # -------------- Build-time variables --------------
-ARG NEXTCLOUD_VERSION=30.0.4
+ARG NEXTCLOUD_VERSION=32.0.5
 ARG PHP_VERSION=8.3
-ARG NGINX_VERSION=1.26
+ARG NGINX_VERSION=1.28
 
 ARG ALPINE_VERSION=3.21
 ARG HARDENED_MALLOC_VERSION=11
@@ -10,19 +10,17 @@ ARG SNUFFLEUPAGUS_VERSION=0.10.0
 ARG UID=1000
 ARG GID=1000
 
-# nextcloud-30.0.4.tar.bz2
-ARG SHA256_SUM="eb6aaba9acef442f2b3e4a996b7ee8a5ed24442f9bba681237fb28ed970e1fa5"
+# nextcloud-32.0.5.tar.bz2
+ARG SHA256_SUM="8dd0bc8f8e2d262edad11197d4a07af799b51fe872ee2d9259ffa19b43e543ad"
 
 # Nextcloud Security <security@nextcloud.com> (D75899B9A724937A)
 ARG GPG_FINGERPRINT="2880 6A87 8AE4 23A2 8372  792E D758 99B9 A724 937A"
 # ---------------------------------------------------
 
 ### Build PHP base
-FROM docker.io/library/php:${PHP_VERSION}-fpm-alpine${ALPINE_VERSION} as base
+FROM docker.io/library/php:${PHP_VERSION}-fpm-alpine${ALPINE_VERSION} AS base
 
 ARG SNUFFLEUPAGUS_VERSION
-
-ENV IMAGICK_SHA 28f27044e435a2b203e32675e942eb8de620ee58
 
 RUN apk -U upgrade \
  && apk add -t build-deps \
@@ -74,8 +72,7 @@ RUN apk -U upgrade \
  && pecl install smbclient \
  && pecl install APCu \
  && pecl install redis \
- && curl -L -o /tmp/imagick.tar.gz https://github.com/Imagick/imagick/archive/${IMAGICK_SHA}.tar.gz && tar --strip-components=1 -xf /tmp/imagick.tar.gz && phpize && ./configure && make && make install \
- && apk add --no-cache --virtual .imagick-runtime-deps imagemagick \
+ && pecl install imagick \
  && docker-php-ext-enable \
         smbclient \
         redis \
@@ -88,7 +85,7 @@ RUN apk -U upgrade \
 
 ### Build Hardened Malloc
 ARG ALPINE_VERSION
-FROM docker.io/library/alpine:${ALPINE_VERSION} as build-malloc
+FROM docker.io/library/alpine:${ALPINE_VERSION} AS build-malloc
 
 ARG HARDENED_MALLOC_VERSION
 ARG CONFIG_NATIVE=false
@@ -102,11 +99,11 @@ RUN apk --no-cache add build-base git gnupg && cd /tmp \
 
 
 ### Fetch nginx
-FROM docker.io/library/nginx:${NGINX_VERSION}-alpine as nginx
+FROM docker.io/library/nginx:${NGINX_VERSION}-alpine AS nginx
 
 
 ### Build Nextcloud (production environemnt)
-FROM base as nextcloud
+FROM base AS nextcloud
 
 COPY --from=nginx /usr/sbin/nginx /usr/sbin/nginx
 COPY --from=nginx /etc/nginx /etc/nginx
