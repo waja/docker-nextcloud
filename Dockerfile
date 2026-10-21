@@ -1,17 +1,17 @@
 # -------------- Build-time variables --------------
-ARG NEXTCLOUD_VERSION=32.0.5
-ARG PHP_VERSION=8.3
-ARG NGINX_VERSION=1.28
+ARG NEXTCLOUD_VERSION=35.0.2
+ARG PHP_VERSION=8.5
+ARG NGINX_VERSION=1.30
 
-ARG ALPINE_VERSION=3.21
-ARG HARDENED_MALLOC_VERSION=11
-ARG SNUFFLEUPAGUS_VERSION=0.10.0
+ARG ALPINE_VERSION=3.24
+ARG HARDENED_MALLOC_VERSION=14
+ARG SNUFFLEUPAGUS_VERSION=0.14.0
 
 ARG UID=1000
 ARG GID=1000
 
-# nextcloud-32.0.5.tar.bz2
-ARG SHA256_SUM="8dd0bc8f8e2d262edad11197d4a07af799b51fe872ee2d9259ffa19b43e543ad"
+# nextcloud-35.0.2.tar.bz2
+ARG SHA256_SUM="dfc7955eaec5621de90e031d10f76006173b3f3e31d5d6e174821d1da14f162d"
 
 # Nextcloud Security <security@nextcloud.com> (D75899B9A724937A)
 ARG GPG_FINGERPRINT="2880 6A87 8AE4 23A2 8372  792E D758 99B9 A724 937A"
@@ -62,7 +62,6 @@ RUN apk -U upgrade \
         bz2 \
         intl \
         ldap \
-        opcache \
         pcntl \
         pdo_mysql \
         pdo_pgsql \
@@ -91,15 +90,16 @@ ARG HARDENED_MALLOC_VERSION
 ARG CONFIG_NATIVE=false
 ARG VARIANT=light
 
-RUN apk --no-cache add build-base git gnupg && cd /tmp \
- && wget -q https://github.com/thestinger.gpg && gpg --import thestinger.gpg \
- && git clone --depth 1 --branch ${HARDENED_MALLOC_VERSION} https://github.com/GrapheneOS/hardened_malloc \
- && cd hardened_malloc && git verify-tag $(git describe --tags) \
+RUN apk --no-cache add build-base git openssh && cd /tmp \
+ && wget -q -O - https://github.com/thestinger.keys | while read -r key; do echo "thestinger@github.com $key"; done > allowed_signers \
+ && git config --global gpg.ssh.allowedSignersFile /tmp/allowed_signers && git init hardened_malloc && cd hardened_malloc \
+ && git fetch --depth 1 https://github.com/GrapheneOS/hardened_malloc tag ${HARDENED_MALLOC_VERSION} \
+ && git checkout FETCH_HEAD && git verify-tag $(git describe --tags) \
  && make CONFIG_NATIVE=${CONFIG_NATIVE} VARIANT=${VARIANT}
 
 
 ### Fetch nginx
-FROM docker.io/library/nginx:${NGINX_VERSION}-alpine AS nginx
+FROM docker.io/library/nginx:${NGINX_VERSION}-alpine${ALPINE_VERSION} AS nginx
 
 
 ### Build Nextcloud (production environemnt)

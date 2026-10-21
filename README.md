@@ -35,7 +35,7 @@ ___
 - Includes **Snuffleupagus**, [a PHP security module](https://github.com/jvoisin/snuffleupagus).
 - Includes a simple **built-in cron** system.
 - Much easier to maintain thanks to multi-stages build.
-- Does not include imagick, samba, etc. by default.
+- Includes imagick and smbclient for extended file handling and SMB/CIFS support.
 
 You're free to make your own image based on this one if you want a specific feature. Uncommon features won't be included as they can increase attack surface: this image intends to stay **minimal**, but **functional enough** to cover basic needs.
 
@@ -58,8 +58,8 @@ Verifying the signature isn't a requirement, and might not be as seamless as usi
 ## Tags
 
 - `latest` : latest Nextcloud version
-- `x` : latest Nextcloud x.x (e.g. `32`)
-- `x.x.x` : Nextcloud x.x.x (e.g. `32.0.0`)
+- `x` : latest Nextcloud x.x (e.g. `35`)
+- `x.x.x` : Nextcloud x.x.x (e.g. `35.0.0`)
 
 You can always have a glance [here](https://github.com/users/hoellen/packages/container/package/nextcloud).
 Only the **latest stable version** will be maintained by myself.
