@@ -1,6 +1,6 @@
 # -------------- Build-time variables --------------
 ARG NEXTCLOUD_VERSION=35.0.2
-ARG PHP_IMAGE=docker.io/library/php:8.5-fpm-alpine3.24
+ARG PHP_VERSION=8.5
 ARG NGINX_VERSION=1.30
 
 ARG ALPINE_VERSION=3.24
@@ -18,7 +18,7 @@ ARG GPG_FINGERPRINT="2880 6A87 8AE4 23A2 8372  792E D758 99B9 A724 937A"
 # ---------------------------------------------------
 
 ### Build PHP base
-FROM ${PHP_IMAGE} AS base
+FROM docker.io/library/php:${PHP_VERSION}-fpm-alpine${ALPINE_VERSION} AS base
 
 ARG SNUFFLEUPAGUS_VERSION
 
