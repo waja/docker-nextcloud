@@ -1,8 +1,8 @@
 # -------------- Build-time variables --------------
 ARG NEXTCLOUD_VERSION=35.0.2
-ARG PHP_IMAGE=docker.io/library/php:8.5-fpm-alpine3.24
-ARG ALPINE_IMAGE=docker.io/library/alpine:3.24
-ARG NGINX_IMAGE=docker.io/library/nginx:1.30-alpine3.24
+ARG PHP_IMAGE=docker.io/library/php:8.5-fpm-alpine3.24@sha256:51414d5291758fe27f58a64c7e8a078465d32cc7dcef7bda803f5b36019802e0
+ARG ALPINE_IMAGE=docker.io/library/alpine:3.24@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf
+ARG NGINX_IMAGE=docker.io/library/nginx:1.30-alpine3.24@sha256:caf4e1e032a20f9c3c5e28fc7f25ffd768ad8677b4975c54193075997b3a97e3
 
 ARG HARDENED_MALLOC_VERSION=14
 ARG SNUFFLEUPAGUS_VERSION=0.14.0
