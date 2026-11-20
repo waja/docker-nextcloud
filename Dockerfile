@@ -1,13 +1,8 @@
 # -------------- Build-time variables --------------
 ARG NEXTCLOUD_VERSION=35.0.2
-ARG PHP_VERSION=8.5
-ARG NGINX_VERSION=1.30
-ARG ALPINE_VERSION=3.24
-
-# Keep overridable image references compatible with the documented version arguments.
-ARG PHP_IMAGE=docker.io/library/php:${PHP_VERSION}-fpm-alpine${ALPINE_VERSION}
-ARG ALPINE_IMAGE=docker.io/library/alpine:${ALPINE_VERSION}
-ARG NGINX_IMAGE=docker.io/library/nginx:${NGINX_VERSION}-alpine${ALPINE_VERSION}
+ARG PHP_IMAGE=docker.io/library/php:8.5-fpm-alpine3.24
+ARG ALPINE_IMAGE=docker.io/library/alpine:3.24
+ARG NGINX_IMAGE=docker.io/library/nginx:1.30-alpine3.24
 
 ARG HARDENED_MALLOC_VERSION=14
 ARG SNUFFLEUPAGUS_VERSION=0.14.0
@@ -88,7 +83,6 @@ RUN apk -U upgrade \
 
 
 ### Build Hardened Malloc
-ARG ALPINE_VERSION
 FROM ${ALPINE_IMAGE} AS build-malloc
 
 ARG HARDENED_MALLOC_VERSION
